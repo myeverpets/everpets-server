@@ -11,11 +11,11 @@ datasource db {
 }
 
 model User {
-  user_id Int @id @default(autoincrement()) @map("user_id")
+  userId Int @id @default(autoincrement()) @map("user_id")
   firstName String @db.VarChar(64) @map("first_name")
   lastName String @db.VarChar(64) @map("last_name")
   userBio String @db.VarChar(512) @default("") @map("user_bio") 
-  username String @db.VarChar(32) @unique
+  phoneNumber String @db.VarChar(15) @unique @map("phone_number")
   email String @db.VarChar(255) @unique
   password String @db.VarChar(60) 
   createdAt DateTime @default(now()) @map("created_at")

@@ -86,10 +86,4 @@ export class AuthController {
 
     return res.json({ accessToken });
   }
-
-  @Post()
-  @UseGuards(AuthGuard('access'))
-  getHello() {
-    return 'hello';
-  }
 }

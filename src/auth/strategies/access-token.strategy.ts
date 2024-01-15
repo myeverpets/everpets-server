@@ -18,6 +18,6 @@ export class AccessTokenStrategy extends PassportStrategy(Strategy, 'access') {
     if (!user) {
       throw new UnauthorizedException('Invalid access token');
     }
-    return payload;
+    return user;
   }
 }

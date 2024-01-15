@@ -51,20 +51,6 @@ export class AuthService {
     return user;
   }
 
-  public async refreshToken(oldRefreshToken: string) {
-    const decodedUser: RefreshTokenPayload =
-      this.jwtService.decode(oldRefreshToken);
-    const user = await this.userService.getById(decodedUser.sub);
-    if (!user) {
-      throw new HttpException(
-        'Invalid or missing user information in the refresh token',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    return await this.generateTokens(user);
-  }
-
   public async generateTokens(
     user: User,
   ): Promise<{ accessToken: string; refreshToken: string }> {

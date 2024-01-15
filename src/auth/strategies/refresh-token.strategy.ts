@@ -25,6 +25,6 @@ export class RefreshTokenStrategy extends PassportStrategy(
     if (!user) {
       throw new UnauthorizedException('Invalid refresh token');
     }
-    return payload;
+    return user;
   }
 }

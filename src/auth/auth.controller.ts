@@ -15,6 +15,7 @@ import { RegisterDto } from './dtos/register.dto';
 import { LoginDto } from './dtos/login.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
+import { User } from '@prisma/client';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -73,11 +74,12 @@ export class AuthController {
   @UseGuards(AuthGuard('refresh'))
   @Post('refresh')
   public async refresh(@Req() req: Request, @Res() res: Response) {
-    const oldRefreshToken = req.cookies?.['refreshToken'];
-
+    const user = req?.user as User;
+    if (!user) {
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    }
     const { accessToken, refreshToken } =
-      await this.authService.refreshToken(oldRefreshToken);
-
+      await this.authService.generateTokens(user);
     res.clearCookie('refreshToken');
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,

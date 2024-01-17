@@ -30,7 +30,7 @@ export class UserService {
     return user;
   }
 
-  public async getByUsernameOrEmail(
+  public async getUserByEmailOrPhoneNumber(
     phoneNumber?: string,
     email?: string,
   ): Promise<User | null> {
@@ -41,7 +41,7 @@ export class UserService {
     });
   }
 
-  public async getByUsernameAndEmail(
+  public async getUserByPhoneNumberAndEmail(
     phoneNumber: string,
     email: string,
   ): Promise<User | null> {

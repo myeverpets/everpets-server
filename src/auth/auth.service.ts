@@ -13,7 +13,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
   ) {}
-  public async register(registerDto: RegisterDto): Promise<User> {
+  public async register(registerDto: RegisterDto): Promise<User | null> {
     return await this.userService.createUser(registerDto);
   }
 
@@ -26,12 +26,12 @@ export class AuthService {
       (!loginDto.phoneNumber && loginDto.email) ||
       (loginDto.phoneNumber && !loginDto.email)
     ) {
-      user = await this.userService.getByUsernameOrEmail(
+      user = await this.userService.getUserByEmailOrPhoneNumber(
         loginDto.phoneNumber,
         loginDto.email,
       );
     } else {
-      user = await this.userService.getByUsernameAndEmail(
+      user = await this.userService.getUserByPhoneNumberAndEmail(
         loginDto.phoneNumber,
         loginDto.email,
       );

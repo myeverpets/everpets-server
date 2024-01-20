@@ -1,10 +1,14 @@
-import * as S3 from 'aws-sdk/clients/s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { v4 } from 'uuid';
 
 export class UserAvatarService {
-  private readonly s3Client: S3;
+  private readonly s3Client: S3Client;
   constructor() {
-    this.s3Client = new S3({
+    this.s3Client = new S3Client({
       region: process.env.AWS_S3_REGION,
       credentials: {
         accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID,
@@ -16,13 +20,15 @@ export class UserAvatarService {
   public async uploadAvatar(file: Buffer) {
     try {
       const key = v4();
-      await this.s3Client.upload({
-        Bucket: process.env.AWS_S3_BUCKET_USER_PHOTO_NAME,
-        Key: key,
-        Body: file,
-        ContentType: 'image',
-        ACL: 'public-read',
-      });
+      await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET_USER_PHOTO_NAME,
+          Key: key,
+          Body: file,
+          ContentType: 'image',
+          ACL: 'public-read',
+        }),
+      );
       return {
         key,
         url: `https://${process.env.AWS_S3_BUCKET_USER_PHOTO_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${key}`,
@@ -34,10 +40,12 @@ export class UserAvatarService {
 
   public async deleteAvatar(key: string) {
     try {
-      await this.s3Client.deleteObject({
-        Bucket: process.env.AWS_S3_BUCKET_USER_PHOTO_NAME,
-        Key: key,
-      });
+      await this.s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET_USER_PHOTO_NAME,
+          Key: key,
+        }),
+      );
       return true;
     } catch (error) {
       return false;

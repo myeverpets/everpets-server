@@ -17,9 +17,21 @@ model User {
   userBio String @db.VarChar(512) @default("") @map("user_bio") 
   phoneNumber String @db.VarChar(15) @unique @map("phone_number")
   email String @db.VarChar(255) @unique
+  isEmailVerified Boolean @default(false) @map("is_email_verified")
   password String @db.VarChar(60) 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at") 
+  EmailVerification EmailVerification? 
 
   @@map("user")
+}
+
+model EmailVerification {
+  emailCodeId Int @id @default(autoincrement()) @map("email_code_id")
+  userId Int @map("user_id") @unique
+  user User @relation(fields: [userId], references: [userId])
+  code String @db.VarChar(8) @map("code")
+  expiresAt DateTime @map("expires_at")
+
+  @@map("email_verification")
 }

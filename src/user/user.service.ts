@@ -1,12 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { User } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import * as crypto from 'crypto';
+import { MailerService } from '../mailer/mailer.service';
+import { SendVerificationMailDto } from './dtos/send-verification-mail.dto';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly mailerService: MailerService,
+  ) {}
   public async createUser(userDto: CreateUserDto): Promise<User | null> {
     const exitstingUser = await this.prismaService.user.findFirst({
       where: {
@@ -58,5 +64,86 @@ export class UserService {
         userId,
       },
     });
+  }
+
+  public async sendVerificationMail(dto: SendVerificationMailDto) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        email: dto.email,
+      },
+    });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    if (user.isEmailVerified) {
+      throw new HttpException('Email already verified', HttpStatus.BAD_REQUEST);
+    }
+    const verificationCode = await this.generateSecureCode();
+    const expirationTime = new Date(Date.now() + 1000 * 60 * 1);
+    await this.prismaService.emailVerification.create({
+      data: {
+        userId: user.userId,
+        code: verificationCode,
+        expiresAt: expirationTime,
+      },
+    });
+    const isSent = await this.mailerService.sendEmail(verificationCode, user);
+    if (!isSent) {
+      throw new HttpException(
+        'Failed to send email',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+    return { message: 'Email sent successfully' };
+  }
+
+  public async verifyEmail(token: string) {
+    const emailVerification =
+      await this.prismaService.emailVerification.findFirst({
+        where: {
+          code: token,
+        },
+      });
+    if (!emailVerification) {
+      throw new HttpException(
+        'Invalid token or user already verified',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        userId: emailVerification.userId,
+      },
+    });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    if (emailVerification.expiresAt < new Date()) {
+      await this.prismaService.emailVerification.delete({
+        where: { emailCodeId: emailVerification.emailCodeId },
+      });
+      throw new HttpException('Token expired', HttpStatus.BAD_REQUEST);
+    }
+    await this.prismaService.user.update({
+      where: {
+        userId: user.userId,
+      },
+      data: {
+        isEmailVerified: true,
+      },
+    });
+    await this.prismaService.emailVerification.delete({
+      where: {
+        emailCodeId: emailVerification.emailCodeId,
+      },
+    });
+    return { message: 'Email verified successfully' };
+  }
+
+  public async generateSecureCode() {
+    const secureRandomBytes = crypto.randomBytes(4);
+    const hexCode = secureRandomBytes.toString('hex');
+    const eightDigitCode = hexCode.slice(0, 8);
+    return eightDigitCode;
   }
 }

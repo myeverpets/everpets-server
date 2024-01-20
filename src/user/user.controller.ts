@@ -2,7 +2,11 @@ import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { SendVerificationMailDto } from './dtos/send-verification-mail.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { ApiTags } from '@nestjs/swagger';
+import { SendVerificationSmsDto } from './dtos/send-verification-sms.dto';
+import { VerificationDto } from './dtos/verification.dto';
 
+@ApiTags('User')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -17,19 +21,23 @@ export class UserController {
 
   @UseGuards(AuthGuard('access'))
   @Post('verify-email')
-  public async verifyEmail(@Body() body: { token: string }) {
-    return await this.userService.verifyEmail(body.token);
+  public async verifyEmail(@Body() tokenDto: VerificationDto) {
+    return await this.userService.verifyEmail(tokenDto.token);
   }
 
   @UseGuards(AuthGuard('access'))
   @Post('send-verification-sms')
-  public async sendVerificationSms(@Body() body: { phoneNumber: string }) {
-    return await this.userService.sendVerificationSms(body.phoneNumber);
+  public async sendVerificationSms(
+    @Body() sendVerificationSmsDto: SendVerificationSmsDto,
+  ) {
+    return await this.userService.sendVerificationSms(
+      sendVerificationSmsDto.phoneNumber,
+    );
   }
 
   @UseGuards(AuthGuard('access'))
   @Post('verify-sms')
-  public async verifySms(@Body() body: { token: string }) {
-    return await this.userService.verifySms(body.token);
+  public async verifySms(@Body() tokenDto: VerificationDto) {
+    return await this.userService.verifySms(tokenDto.token);
   }
 }

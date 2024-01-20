@@ -24,14 +24,27 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at") 
   EmailVerification EmailVerification? 
   PhoneVerification PhoneVerification?
+  UserPhoto UserPhoto?
 
   @@map("user")
+}
+
+model UserPhoto {
+  photoId Int @id @default(autoincrement()) @map("photo_id")
+  userId Int @map("user_id") @unique
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  key String @db.VarChar(255) @map("key")
+  photoUrl String @db.VarChar(255) @map("photo_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_photo")
 }
 
 model EmailVerification {
   emailCodeId Int @id @default(autoincrement()) @map("email_code_id")
   userId Int @map("user_id") @unique
-  user User @relation(fields: [userId], references: [userId])
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
   code String @db.VarChar(8) @map("code")
   expiresAt DateTime @map("expires_at")
 
@@ -41,7 +54,7 @@ model EmailVerification {
 model PhoneVerification {
   phoneCodeId Int @id @default(autoincrement()) @map("phone_code_id")
   userId Int @map("user_id") @unique
-  user User @relation(fields: [userId], references: [userId])
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
   code String @db.VarChar(8) @map("code")
   expiresAt DateTime @map("expires_at")
 

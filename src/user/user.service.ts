@@ -7,6 +7,7 @@ import * as crypto from 'crypto';
 import { MailerService } from '../mailer/mailer.service';
 import { SendVerificationMailDto } from './dtos/send-verification-mail.dto';
 import { SnsService } from 'src/sns/sns.service';
+import { UserAvatarService } from 'src/photo/services/user-avatar.service';
 
 @Injectable()
 export class UserService {
@@ -14,6 +15,7 @@ export class UserService {
     private readonly prismaService: PrismaService,
     private readonly mailerService: MailerService,
     private readonly snsService: SnsService,
+    private readonly userAvatarService: UserAvatarService,
   ) {}
   public async createUser(userDto: CreateUserDto): Promise<User | null> {
     const exitstingUser = await this.prismaService.user.findFirst({
@@ -240,5 +242,77 @@ export class UserService {
     const hexCode = secureRandomBytes.toString('hex');
     const eightDigitCode = hexCode.slice(0, 8);
     return eightDigitCode;
+  }
+
+  public async uploadAvatar(userId: number, file: Buffer) {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        userId,
+      },
+    });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    const res = await this.userAvatarService.uploadAvatar(file);
+    if (!res) {
+      throw new HttpException(
+        'Failed to upload avatar',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    await this.prismaService.userPhoto.upsert({
+      where: {
+        userId: user.userId,
+      },
+      update: {
+        photoUrl: res.url,
+        key: res.key,
+      },
+      create: {
+        userId: user.userId,
+        photoUrl: res.url,
+        key: res.key,
+      },
+    });
+
+    return { message: 'Avatar uploaded successfully' };
+  }
+
+  public async getAvatar(userId: number) {
+    const userPhoto = await this.prismaService.userPhoto.findFirst({
+      where: {
+        userId,
+      },
+    });
+
+    if (!userPhoto) {
+      throw new HttpException('Avatar not found', HttpStatus.NOT_FOUND);
+    }
+
+    return { url: userPhoto.photoUrl };
+  }
+
+  public async deleteAvatar(userId: number) {
+    const userPhoto = await this.prismaService.userPhoto.findFirst({
+      where: {
+        userId,
+      },
+    });
+
+    if (!userPhoto) {
+      throw new HttpException('Avatar not found', HttpStatus.NOT_FOUND);
+    }
+
+    await this.userAvatarService.deleteAvatar(userPhoto.key);
+
+    await this.prismaService.userPhoto.delete({
+      where: {
+        photoId: userPhoto.photoId,
+      },
+    });
+
+    return { message: 'Avatar deleted successfully' };
   }
 }

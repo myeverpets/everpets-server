@@ -1,10 +1,22 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  UseGuards,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+  Param,
+  Get,
+  Delete,
+} from '@nestjs/common';
+import { Express } from 'express';
 import { UserService } from './user.service';
 import { SendVerificationMailDto } from './dtos/send-verification-mail.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
 import { SendVerificationSmsDto } from './dtos/send-verification-sms.dto';
 import { VerificationDto } from './dtos/verification.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('User')
 @Controller('user')
@@ -39,5 +51,27 @@ export class UserController {
   @Post('verify-sms')
   public async verifySms(@Body() tokenDto: VerificationDto) {
     return await this.userService.verifySms(tokenDto.token);
+  }
+
+  @UseGuards(AuthGuard('access'))
+  @UseInterceptors(FileInterceptor('image'))
+  @Post('photo/:userId')
+  public async uploadAvatar(
+    @UploadedFile() file: Express.Multer.File,
+    @Param('userId') userId: number,
+  ) {
+    return await this.userService.uploadAvatar(userId, file.buffer);
+  }
+
+  @UseGuards(AuthGuard('access'))
+  @Get('photo/:userId')
+  public async getAvatar(@Param('userId') userId: number) {
+    return await this.userService.getAvatar(userId);
+  }
+
+  @UseGuards(AuthGuard('access'))
+  @Delete('photo/:userId')
+  public async deleteAvatar(@Param('userId') userId: number) {
+    return await this.userService.deleteAvatar(userId);
   }
 }

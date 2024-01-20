@@ -5,6 +5,7 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { MailerModule } from './mailer/mailer.module';
 import { SnsModule } from './sns/sns.module';
+import { PhotoModule } from './photo/photo.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { SnsModule } from './sns/sns.module';
     AuthModule,
     MailerModule,
     SnsModule,
+    PhotoModule,
   ],
   controllers: [],
   providers: [],

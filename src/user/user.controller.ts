@@ -15,8 +15,21 @@ export class UserController {
     return await this.userService.sendVerificationMail(sendVerificationMailDto);
   }
 
+  @UseGuards(AuthGuard('access'))
   @Post('verify-email')
   public async verifyEmail(@Body() body: { token: string }) {
     return await this.userService.verifyEmail(body.token);
+  }
+
+  @UseGuards(AuthGuard('access'))
+  @Post('send-verification-sms')
+  public async sendVerificationSms(@Body() body: { phoneNumber: string }) {
+    return await this.userService.sendVerificationSms(body.phoneNumber);
+  }
+
+  @UseGuards(AuthGuard('access'))
+  @Post('verify-sms')
+  public async verifySms(@Body() body: { token: string }) {
+    return await this.userService.verifySms(body.token);
   }
 }

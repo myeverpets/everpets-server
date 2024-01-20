@@ -6,12 +6,14 @@ import { PrismaService } from '../database/prisma.service';
 import * as crypto from 'crypto';
 import { MailerService } from '../mailer/mailer.service';
 import { SendVerificationMailDto } from './dtos/send-verification-mail.dto';
+import { SnsService } from 'src/sns/sns.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly mailerService: MailerService,
+    private readonly snsService: SnsService,
   ) {}
   public async createUser(userDto: CreateUserDto): Promise<User | null> {
     const exitstingUser = await this.prismaService.user.findFirst({
@@ -79,9 +81,16 @@ export class UserService {
       throw new HttpException('Email already verified', HttpStatus.BAD_REQUEST);
     }
     const verificationCode = await this.generateSecureCode();
-    const expirationTime = new Date(Date.now() + 1000 * 60 * 1);
-    await this.prismaService.emailVerification.create({
-      data: {
+    const expirationTime = new Date(Date.now() + 1000 * 60 * 15);
+    await this.prismaService.emailVerification.upsert({
+      where: {
+        userId: user.userId,
+      },
+      update: {
+        code: verificationCode,
+        expiresAt: expirationTime,
+      },
+      create: {
         userId: user.userId,
         code: verificationCode,
         expiresAt: expirationTime,
@@ -140,6 +149,92 @@ export class UserService {
     return { message: 'Email verified successfully' };
   }
 
+  public async sendVerificationSms(phoneNumber: string) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        phoneNumber,
+      },
+    });
+    console.log(user);
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    if (user.isPhoneVerified) {
+      throw new HttpException(
+        'Phone number already verified',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const verificationCode = await this.generateSecureCode();
+    console.log(verificationCode);
+    const expirationTime = new Date(Date.now() + 1000 * 60 * 15);
+    await this.prismaService.phoneVerification.upsert({
+      where: {
+        userId: user.userId,
+      },
+      update: {
+        code: verificationCode,
+        expiresAt: expirationTime,
+      },
+      create: {
+        userId: user.userId,
+        code: verificationCode,
+        expiresAt: expirationTime,
+      },
+    });
+    const isSent = await this.snsService.sendSms(verificationCode, user);
+    console.log(isSent);
+    if (!isSent) {
+      throw new HttpException(
+        'Failed to send sms',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+    return { message: 'Sms sent successfully' };
+  }
+
+  public async verifySms(token: string) {
+    const phoneVerification =
+      await this.prismaService.phoneVerification.findFirst({
+        where: {
+          code: token,
+        },
+      });
+    if (!phoneVerification) {
+      throw new HttpException(
+        'Invalid token or user already verified',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        userId: phoneVerification.userId,
+      },
+    });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    if (phoneVerification.expiresAt < new Date()) {
+      await this.prismaService.phoneVerification.delete({
+        where: { phoneCodeId: phoneVerification.phoneCodeId },
+      });
+      throw new HttpException('Token expired', HttpStatus.BAD_REQUEST);
+    }
+    await this.prismaService.user.update({
+      where: {
+        userId: user.userId,
+      },
+      data: {
+        isPhoneVerified: true,
+      },
+    });
+    await this.prismaService.phoneVerification.delete({
+      where: {
+        phoneCodeId: phoneVerification.phoneCodeId,
+      },
+    });
+    return { message: 'Phone number verified successfully' };
+  }
   public async generateSecureCode() {
     const secureRandomBytes = crypto.randomBytes(4);
     const hexCode = secureRandomBytes.toString('hex');

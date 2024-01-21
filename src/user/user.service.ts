@@ -6,15 +6,15 @@ import { PrismaService } from '../database/prisma.service';
 import * as crypto from 'crypto';
 import { MailerService } from '../mailer/mailer.service';
 import { SendVerificationMailDto } from './dtos/send-verification-mail.dto';
-import { SnsService } from 'src/sns/sns.service';
 import { UserAvatarService } from 'src/photo/services/user-avatar.service';
+import { NotificationService } from 'src/notification/notification.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly mailerService: MailerService,
-    private readonly snsService: SnsService,
+    private readonly notificationService: NotificationService,
     private readonly userAvatarService: UserAvatarService,
   ) {}
   public async createUser(userDto: CreateUserDto): Promise<User | null> {
@@ -184,8 +184,10 @@ export class UserService {
         expiresAt: expirationTime,
       },
     });
-    const isSent = await this.snsService.sendSms(verificationCode, user);
-    console.log(isSent);
+    const isSent = await this.notificationService.sendSms(
+      verificationCode,
+      user,
+    );
     if (!isSent) {
       throw new HttpException(
         'Failed to send sms',

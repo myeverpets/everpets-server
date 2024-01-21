@@ -1,10 +1,9 @@
+import { Role } from '../../roles/roles.enum';
+
 export interface AccessTokenPayload {
   sub: number;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
   email: string;
-  photoUrl: string | null;
+  role: Role;
 }
 
 export interface RefreshTokenPayload {

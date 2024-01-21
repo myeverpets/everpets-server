@@ -6,6 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AccessTokenPayload, RefreshTokenPayload } from './interfaces';
 import { LoginDto } from './dtos/login.dto';
 import * as bcrypt from 'bcrypt';
+import { Role } from '../roles/roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -65,11 +66,8 @@ export class AuthService {
   private async generateAccessToken(user: User): Promise<string> {
     const payload: AccessTokenPayload = {
       sub: user.userId,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      phoneNumber: user.phoneNumber,
       email: user.email,
-      photoUrl: null,
+      role: user.role as Role,
     };
 
     return await this.jwtService.signAsync(payload, {

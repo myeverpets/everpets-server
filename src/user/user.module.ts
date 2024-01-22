@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { UserService } from './user.service';
 import { DatabaseModule } from 'src/database/database.module';
-import { MailerModule } from 'src/mailer/mailer.module';
 import { UserController } from './user.controller';
 import { PhotoModule } from 'src/photo/photo.module';
 import { NotificationModule } from 'src/notification/notification.module';
@@ -10,6 +9,6 @@ import { NotificationModule } from 'src/notification/notification.module';
   providers: [UserService],
   exports: [UserService],
   controllers: [UserController],
-  imports: [DatabaseModule, MailerModule, NotificationModule, PhotoModule],
+  imports: [DatabaseModule, NotificationModule, PhotoModule],
 })
 export class UserModule {}

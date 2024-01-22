@@ -4,17 +4,15 @@ import { CreateUserDto } from './dtos/create-user.dto';
 import { User } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import * as crypto from 'crypto';
-import { MailerService } from '../mailer/mailer.service';
 import { SendVerificationMailDto } from './dtos/send-verification-mail.dto';
+import { NotificationFactory } from 'src/notification/notification.factory';
 import { UserAvatarService } from 'src/photo/services/user-avatar.service';
-import { NotificationService } from 'src/notification/notification.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly mailerService: MailerService,
-    private readonly notificationService: NotificationService,
+    private readonly notificationServiceFactory: NotificationFactory,
     private readonly userAvatarService: UserAvatarService,
   ) {}
   public async createUser(userDto: CreateUserDto): Promise<User | null> {
@@ -70,7 +68,7 @@ export class UserService {
     });
   }
 
-  public async sendVerificationMail(dto: SendVerificationMailDto) {
+  public async sendVerificationCode(dto: SendVerificationMailDto) {
     const user = await this.prismaService.user.findFirst({
       where: {
         email: dto.email,
@@ -98,7 +96,9 @@ export class UserService {
         expiresAt: expirationTime,
       },
     });
-    const isSent = await this.mailerService.sendEmail(verificationCode, user);
+    const isSent = await this.notificationServiceFactory
+      .create('email')
+      .sendVerificationCode(verificationCode, user);
     if (!isSent) {
       throw new HttpException(
         'Failed to send email',
@@ -168,7 +168,6 @@ export class UserService {
       );
     }
     const verificationCode = await this.generateSecureCode();
-    console.log(verificationCode);
     const expirationTime = new Date(Date.now() + 1000 * 60 * 15);
     await this.prismaService.phoneVerification.upsert({
       where: {
@@ -184,10 +183,9 @@ export class UserService {
         expiresAt: expirationTime,
       },
     });
-    const isSent = await this.notificationService.sendSms(
-      verificationCode,
-      user,
-    );
+    const isSent = await this.notificationServiceFactory
+      .create('sms')
+      .sendVerificationCode(verificationCode, user);
     if (!isSent) {
       throw new HttpException(
         'Failed to send sms',

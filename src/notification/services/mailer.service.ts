@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { SES } from 'aws-sdk';
 import { User } from '@prisma/client';
+import { NotificationService } from '../interfaces/notification.interface';
 
 @Injectable()
-export class MailerService {
+export class MailerService implements NotificationService {
   private readonly mailerClient: SES;
   constructor() {
     this.mailerClient = new SES({
@@ -12,7 +13,11 @@ export class MailerService {
       region: process.env.AWS_SES_REGION,
     });
   }
-  public async sendEmail(verificationCode: string, user: User) {
+
+  public async sendVerificationCode(
+    code: string,
+    user: User,
+  ): Promise<boolean> {
     try {
       const params = {
         Source: process.env.AWS_SES_EMAIL_SOURCE,
@@ -27,7 +32,7 @@ export class MailerService {
               <body>
                 <h1>Verification Code</h1>
                 <p>Hi ${user.firstName} ${user.lastName},</p>
-                <p>Here is your verification code: ${verificationCode}</p>
+                <p>Here is your verification code: ${code}</p>
                 <p>Don't share it with anyone. Token will expire in 15 minutes.<p>
               </body>
             </html>`,

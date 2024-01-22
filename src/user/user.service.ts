@@ -68,7 +68,7 @@ export class UserService {
     });
   }
 
-  public async sendVerificationMain(dto: SendVerificationMailDto) {
+  public async sendVerificationMail(dto: SendVerificationMailDto) {
     const user = await this.prismaService.user.findFirst({
       where: {
         email: dto.email,

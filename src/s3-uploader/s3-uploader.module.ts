@@ -5,4 +5,4 @@ import { UserAvatarService } from './services/user-avatar.service';
   providers: [UserAvatarService],
   exports: [UserAvatarService],
 })
-export class PhotoModule {}
+export class S3UploaderModule {}

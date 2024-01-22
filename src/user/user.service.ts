@@ -6,7 +6,7 @@ import { PrismaService } from '../database/prisma.service';
 import * as crypto from 'crypto';
 import { SendVerificationMailDto } from './dtos/send-verification-mail.dto';
 import { NotificationFactory } from 'src/notification/notification.factory';
-import { UserAvatarService } from 'src/photo/services/user-avatar.service';
+import { UserAvatarService } from 'src/s3-uploader/services/user-avatar.service';
 
 @Injectable()
 export class UserService {
@@ -68,7 +68,7 @@ export class UserService {
     });
   }
 
-  public async sendVerificationCode(dto: SendVerificationMailDto) {
+  public async sendVerificationMain(dto: SendVerificationMailDto) {
     const user = await this.prismaService.user.findFirst({
       where: {
         email: dto.email,
